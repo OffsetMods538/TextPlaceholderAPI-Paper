@@ -1,0 +1,9 @@
+api-version: '26.1'
+name: testmod
+version: 1.0.0
+main: eu.pb4.placeholderstest.TestMod
+dependencies:
+  server:
+    placeholder_api_paper:
+      load: BEFORE
+      required: true

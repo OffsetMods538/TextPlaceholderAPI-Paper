@@ -2,7 +2,6 @@ package eu.pb4.placeholderstest;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
-import com.mojang.serialization.JsonOps;
 import eu.pb4.placeholders.api.ParserContext;
 import eu.pb4.placeholders.api.ServerPlaceholderContext;
 import eu.pb4.placeholders.api.Placeholders;
@@ -10,28 +9,25 @@ import eu.pb4.placeholders.api.arguments.StringArgs;
 import eu.pb4.placeholders.api.node.LiteralNode;
 import eu.pb4.placeholders.api.node.TextNode;
 import eu.pb4.placeholders.api.parsers.*;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import it.unimi.dsi.fastutil.Pair;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.arguments.ComponentArgument;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.ComponentSerialization;
-import net.minecraft.network.chat.ComponentUtils;
-import net.minecraft.network.chat.ResolutionContext;
-import net.minecraft.server.level.ServerPlayer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.json.JSONComponentSerializer;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
+
 import java.util.List;
 
-import static net.minecraft.commands.Commands.literal;
-import static net.minecraft.commands.Commands.argument;
+import static io.papermc.paper.command.brigadier.Commands.argument;
+import static io.papermc.paper.command.brigadier.Commands.literal;
 
 
 @SuppressWarnings("deprecation")
-public class TestMod implements ModInitializer {
+public class TestMod extends JavaPlugin {
     private static int perf(CommandContext<CommandSourceStack> context) {
         var input = context.getArgument("component", String.class);
-        ServerPlayer player = context.getSource().getPlayer();
+        Player player = (Player) context.getSource().getExecutor();
         int iter = 1024 * 20;
         // old = NodeParser.merge(TextParserV1.DEFAULT, MarkdownLiteParserV1.ALL, LegacyFormattingParser.ALL)
 
@@ -41,7 +37,7 @@ public class TestMod implements ModInitializer {
                 Pair.of(NodeParser.merge(TagParser.SIMPLIFIED_TEXT_FORMAT, TagLikeParser.of(TagLikeParser.PLACEHOLDER,
                         TagLikeParser.Provider.placeholder(ServerPlaceholderContext.SERVER_KEY, Placeholders.SERVER_PLACEHOLDER_GETTER))), NodeParser.NOOP)
         )) {
-            player.sendSystemMessage(Component.literal("Parser: " + pair), false);
+            player.sendMessage(Component.text("Parser: " + pair));
             long placeholderTimeTotal = 0;
             long contextTimeTotal = 0;
             long tagTimeTotal = 0;
@@ -66,29 +62,30 @@ public class TestMod implements ModInitializer {
                     contextTimeTotal += System.nanoTime() - time;
                     time = System.nanoTime();
 
-                    Component text = placeholders.toComponent(ctx, true);
+                    Component text = placeholders.toAdventureComponent(ctx, true);
                     textTimeTotal += System.nanoTime() - time;
                     output = text;
                 }
                 long total = tagTimeTotal + placeholderTimeTotal + textTimeTotal + contextTimeTotal;
 
                 //player.sendMessage(Text.literal(toJsonString(output)), false);
-                player.sendSystemMessage(ComponentUtils.resolve(ResolutionContext.create(context.getSource()), output), false);
-                player.sendSystemMessage(Component.literal(
+                // no clue what this was: player.sendMessage(PaperAdventure.asAdventure(ComponentUtils.resolve(ResolutionContext.create((net.minecraft.commands.CommandSourceStack) context.getSource()), new AdventureComponent(output).deepConverted())));
+                player.sendMessage(output);
+                player.sendMessage(Component.text(
                         "<FULL> Tag: " + ((tagTimeTotal / 1000) / 1000d) + " ms | " +
                                 "Context: " + ((contextTimeTotal / 1000) / 1000d) + " ms | " +
                                 "Placeholder: " + ((placeholderTimeTotal / 1000) / 1000d) + " ms | " +
                                 "Text: " + ((textTimeTotal / 1000) / 1000d) + " ms | " +
                                 "All: " + ((total / 1000) / 1000d) + " ms"
-                ), false);
+                ));
 
-                player.sendSystemMessage(Component.literal(
+                player.sendMessage(Component.text(
                         "<SINGLE> Tag: " + ((tagTimeTotal / iter / 1000) / 1000d) + " ms | " +
                                 "Context: " + ((contextTimeTotal / iter / 1000) / 1000d) + " ms | " +
                                 "Placeholder: " + ((placeholderTimeTotal / iter / 1000) / 1000d) + " ms | " +
                                 "Text: " + ((textTimeTotal / iter / 1000) / 1000d) + " ms | " +
                                 "All: " + ((total / iter / 1000) / 1000d) + " ms"
-                ), false);
+                ));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -97,28 +94,28 @@ public class TestMod implements ModInitializer {
     }
 
     private static int argTest(CommandContext<CommandSourceStack> context) {
-        context.getSource().sendSystemMessage(Component.literal(
+        context.getSource().getExecutor().sendMessage(Component.text(
                 StringArgs.full(context.getArgument("arg", String.class), ' ', ':').toString()));
         return 0;
     }
 
     private static int markqt(CommandContext<CommandSourceStack> context) {
         try {
-            ServerPlayer player = context.getSource().getPlayer();
-            player.sendSystemMessage(NodeParser.builder().markdown().quickText().build().parseComponent(context.getArgument("component", String.class), ParserContext.of()), false);
+            Player player = (Player) context.getSource().getExecutor();
+            player.sendMessage(NodeParser.builder().markdown().quickText().build().parseAdventureComponent(context.getArgument("component", String.class), ParserContext.of()));
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
 
-    private static String toJsonString(Component text, RegistryAccess registryManager) {
-        return ComponentSerialization.CODEC.encodeStart(registryManager.createSerializationContext(JsonOps.INSTANCE), text).getOrThrow().toString();
+    private static String toJsonString(Component text) {
+        return JSONComponentSerializer.json().serialize(text);
     }
 
     private static int test3(CommandContext<CommandSourceStack> context) {
         try {
-            ServerPlayer player = context.getSource().getPlayer();
+            Player player = (Player) context.getSource().getExecutor();
             var time = System.nanoTime();
             var tags = TextNode.asSingle(
                     LegacyFormattingParser.ALL.parseNodes(
@@ -138,17 +135,17 @@ public class TestMod implements ModInitializer {
             var placeholderTime = System.nanoTime() - time;
             time = System.nanoTime();
 
-            //Component text = placeholders.toComponent(ParserContext.of(ServerPlaceholderContext.SERVER_KEY, ServerPlaceholderContext.of(player)), true);
+            //Component text = placeholders.toAdventureComponent(ParserContext.of(ServerPlaceholderContext.SERVER_KEY, ServerPlaceholderContext.of(player)), true);
             var textTime = System.nanoTime() - time;
 
             //player.sendSystemMessage(Component.literal(toJsonString(text, context.getSource().registryAccess())), false);
             //player.sendSystemMessage(ComponentUtils.updateForEntity(context.getSource(), text, context.getSource().getEntity(), 0), false);
-            player.sendSystemMessage(Component.literal(
+            player.sendMessage(Component.text(
                       "Tag: " + ((tagTime / 1000) / 1000d) + " ms | " +
                             "Placeholder: " + ((placeholderTime / 1000) / 1000d) + " ms | " +
                             "Text: " + ((textTime / 1000) / 1000d) + " ms | " +
                             "All: " + (((tagTime + placeholderTime + textTime) / 1000) / 1000d) + " ms"
-                    ), false);
+                    ));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -157,16 +154,16 @@ public class TestMod implements ModInitializer {
 
     private static int test5(CommandContext<CommandSourceStack> context) {
         try {
-            ServerPlayer player = context.getSource().getPlayer();
+            Player player = (Player) context.getSource().getExecutor();
             var form = context.getArgument("component", String.class);
 
             Component text2 = NodeParser.builder()
                     .serverPlaceholders()
                     .simplifiedTextFormat()
                     .build()
-                    .parseComponent(form, ServerPlaceholderContext.of(player).asParserContext());
-            player.sendSystemMessage(Component.literal(toJsonString(text2, context.getSource().registryAccess())), false);
-            player.sendSystemMessage(text2, false);
+                    .parseAdventureComponent(form, ServerPlaceholderContext.of(player).asParserContext());
+            player.sendMessage(Component.text(toJsonString(text2)));
+            player.sendMessage(text2);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -175,15 +172,15 @@ public class TestMod implements ModInitializer {
 
     private static int test6x(CommandContext<CommandSourceStack> context) {
         try {
-            ServerPlayer player = context.getSource().getPlayer();
+            Player player = (Player) context.getSource().getExecutor();
             ParserContext parsingContext = ParserContext.of();
-            parsingContext.with(ParserContext.Key.HOLDER_LOOKUP, player.registryAccess());     // You need to use this for Hover Item to work
+            //parsingContext.with(ParserContext.Key.HOLDER_LOOKUP, player.registryAccess());     // You need to use this for Hover Item to work TODO: with paper maybe not?
             var form = context.getArgument("component", String.class);
-            player.sendSystemMessage(Component.literal("------------------------------"), false);
-            player.sendSystemMessage(Component.literal("Input.   | " + form), false);
-            player.sendSystemMessage(Component.literal("STF-V2 | ").append(TagParser.SIMPLIFIED_TEXT_FORMAT.parseComponent(form, parsingContext)), false);
-            player.sendSystemMessage(Component.literal("STF+QT | ").append(TagParser.QUICK_TEXT_WITH_STF.parseComponent(form, parsingContext)), false);
-            player.sendSystemMessage(Component.literal("QT       | ").append(TagParser.QUICK_TEXT.parseComponent(form, parsingContext)), false);
+            player.sendMessage(Component.text("------------------------------"));
+            player.sendMessage(Component.text("Input.   | " + form));
+            player.sendMessage(Component.text("STF-V2 | ").append(TagParser.SIMPLIFIED_TEXT_FORMAT.parseAdventureComponent(form, parsingContext)));
+            player.sendMessage(Component.text("STF+QT | ").append(TagParser.QUICK_TEXT_WITH_STF.parseAdventureComponent(form, parsingContext)));
+            player.sendMessage(Component.text("QT       | ").append(TagParser.QUICK_TEXT.parseAdventureComponent(form, parsingContext)));
         } catch (Throwable e) {
             e.printStackTrace();
         }
@@ -192,7 +189,7 @@ public class TestMod implements ModInitializer {
 
     private static int test7(CommandContext<CommandSourceStack> context) {
         try {
-            ServerPlayer player = context.getSource().getPlayer();
+            Player player = (Player) context.getSource().getExecutor();
 
             //var text = Placeholders.parseComponent(Component.translatable("death.attack.outOfWorld", player.getDisplayName()), ServerPlaceholderContext.of(player));
             //player.sendSystemMessage(text);
@@ -205,16 +202,15 @@ public class TestMod implements ModInitializer {
     private static int test8(CommandContext<CommandSourceStack> context) {
         try {
             var parser = NodeParser.builder().quickText().serverPlaceholders().build();
-            context.getSource().sendSystemMessage(parser.parseComponent(StringArgumentType.getString(context, "component"), ServerPlaceholderContext.of(context.getSource()).asParserContext()));
+            context.getSource().getSender().sendMessage(parser.parseAdventureComponent(StringArgumentType.getString(context, "component"), ServerPlaceholderContext.of(context.getSource()).asParserContext()));
         } catch (Exception e) {
             e.printStackTrace();
         }
         return 0;
     }
 
-    public void onInitialize() {
-
-
+    @Override
+    public void onEnable() {
         record ExampleClass(int n) {}
         
         var a = new ExampleClass(5);
@@ -223,47 +219,58 @@ public class TestMod implements ModInitializer {
         System.out.println(a == b);
         System.out.println(a.equals(b));
         System.out.println(a.hashCode() == b.hashCode());
-        
-        
-        
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, dedicated) -> {
+
+
+        this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, commands -> {
             /*dispatcher.register(
                     literal("test").then(argument("component", ComponentArgument.textComponent(registryAccess)).executes(TestMod::test))
             );*/
-            dispatcher.register(
-                    literal("argtest").then(argument("arg", StringArgumentType.greedyString()).executes(TestMod::argTest))
+            commands.registrar().register(
+                    literal("argtest").then(argument("arg", StringArgumentType.greedyString()).executes(TestMod::argTest)).build()
             );
 
 
 
-            dispatcher.register(
-                    literal("test3").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::test3))
+            commands.registrar().register(
+                    literal("test3").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::test3)).build()
             );
 
-            dispatcher.register(
-                    literal("perm").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::perf))
-            );
-            
-            dispatcher.register(
-                    literal("test5").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::test5))
+            commands.registrar().register(
+                    literal("perm").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::perf)).build()
             );
 
-            dispatcher.register(
-                    literal("test6ohno").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::test6x))
+            commands.registrar().register(
+                    literal("test5").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::test5)).build()
             );
 
-            dispatcher.register(
-                    literal("test7").executes(TestMod::test7)
+            commands.registrar().register(
+                    literal("test6ohno").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::test6x)).build()
             );
 
-            dispatcher.register(
-                    literal("test8").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::test8))
+            commands.registrar().register(
+                    literal("test7").executes(TestMod::test7).build()
             );
 
-            dispatcher.register(
-                    literal("markqt").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::markqt))
+            commands.registrar().register(
+                    literal("test8").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::test8)).build()
             );
 
+            commands.registrar().register(
+                    literal("markqt").then(argument("component", StringArgumentType.greedyString()).executes(TestMod::markqt)).build()
+            );
+
+            commands.registrar().register(
+                    literal("whowhereandwhenami").executes(context -> {
+                        context.getSource().getSender().sendMessage(NodeParser.builder().serverPlaceholders().quickText().build().parseAdventureComponent(
+                                        """
+                                        <rb>Hello world!</>
+                                        You are %player:head% %player:name%
+                                        <gr yellow gold>Position: %player:pos_x% %player:pos_y% %player:pos_z% in %player:biome%</>
+                                        Time: %world:time%
+                                        """, ServerPlaceholderContext.of(context.getSource()).asParserContext()));
+                        return 1;
+                    }).build()
+            );
         });
     }
 }

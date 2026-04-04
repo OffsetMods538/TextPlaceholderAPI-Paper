@@ -28,8 +28,8 @@ ext {
 		versionPrefixTemp = "${versionPrefixTemp}${separator}${preReleaseVersion}"
 	}
 	final String versionSuffix = System.getenv("VERSION_SUFFIX")
-	versionPrefixTemp = "${versionPrefixTemp}${versionSuffix == null ? "+local" : versionSuffix.isEmpty() ? "" : "+${versionSuffix}"}"
-	versionPrefixTemp = "${versionPrefixTemp}+neoforge+${project.minecraft_version}"
+	versionPrefixTemp = "${versionPrefixTemp}${versionSuffix == null ? "+local" : versionSuffix.isBlank() ? "" : "+${versionSuffix}"}"
+	versionPrefixTemp = "${versionPrefixTemp}+paper+${project.minecraft_version}"
 
 	versionPrefix = versionPrefixTemp as GStringImpl
 
@@ -73,21 +73,26 @@ repositories {
 }
 
 sourceSets {
-	// TODO
-	//  testmod {
-	//  	runtimeClasspath += main.runtimeClasspath
-	//  	compileClasspath += main.compileClasspath
-	//  }
+	testmod {
+		runtimeClasspath += main.runtimeClasspath
+		compileClasspath += main.compileClasspath
+	}
 }
 
 dependencies {
 	paperweight.paperDevBundle project.paper_version
 
-	// TODO: testmodImplementation sourceSets.main.output
+	testmodImplementation sourceSets.main.output
+}
+
+tasks.register("testmodJar", Jar) {
+	setArchiveClassifier("testmod")
+	from(sourceSets.testmod.output)
 }
 
 tasks.runServer {
 	minecraftVersion project.minecraft_version
+	pluginJars(tasks.testmodJar)
 }
 
 tasks.withType(JavaCompile).configureEach {
