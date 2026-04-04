@@ -49,6 +49,7 @@ outlet {
 paperPluginYaml {
 	name = project.mod_id.replace('-', '_')
 	description = project.mod_description
+	main = "eu.pb4.placeholders.impl.PlaceholderAPIMain"
 	website = project.mod_website
 	apiVersion = outlet.mcVersions().first()
 	authors.add("Patbox")

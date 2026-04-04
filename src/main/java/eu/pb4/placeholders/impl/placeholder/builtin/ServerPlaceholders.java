@@ -4,7 +4,6 @@ import eu.pb4.placeholders.api.PlaceholderResult;
 import eu.pb4.placeholders.api.Placeholders;
 import eu.pb4.placeholders.api.arguments.StringArgs;
 import eu.pb4.placeholders.impl.GeneralUtils;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -13,6 +12,8 @@ import net.minecraft.server.ServerScoreboard;
 import net.minecraft.world.scores.Objective;
 import net.minecraft.world.scores.PlayerScoreEntry;
 import org.apache.commons.lang3.time.DurationFormatUtils;
+import org.bukkit.Server;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -111,10 +112,10 @@ public class ServerPlaceholders {
 
         Placeholders.registerServer(Identifier.fromNamespaceAndPath("server", "mod_version"), (ctx, arg) -> {
             if (arg != null) {
-                var container = FabricLoader.getInstance().getModContainer(arg);
+                var plugin = MinecraftServer.getServer().server.getPluginManager().getPlugin(arg);
 
-                if (container.isPresent()) {
-                    return PlaceholderResult.value(Component.literal(container.get().getMetadata().getVersion().getFriendlyString()));
+                if (plugin != null) {
+                    return PlaceholderResult.value(Component.literal(plugin.getPluginMeta().getVersion()));
                 }
             }
             return PlaceholderResult.invalid("Invalid argument");
@@ -122,10 +123,10 @@ public class ServerPlaceholders {
 
         Placeholders.registerServer(Identifier.fromNamespaceAndPath("server", "mod_name"), (ctx, arg) -> {
             if (arg != null) {
-                var container = FabricLoader.getInstance().getModContainer(arg);
+                var plugin = MinecraftServer.getServer().server.getPluginManager().getPlugin(arg);
 
-                if (container.isPresent()) {
-                    return PlaceholderResult.value(Component.literal(container.get().getMetadata().getName()));
+                if (plugin != null) {
+                    return PlaceholderResult.value(Component.literal(plugin.getPluginMeta().getName()));
                 }
             }
             return PlaceholderResult.invalid("Invalid argument");
@@ -136,15 +137,16 @@ public class ServerPlaceholders {
         });
 
         Placeholders.registerServer(Identifier.fromNamespaceAndPath("server", "mod_count"), (ctx, arg) -> {
-            return PlaceholderResult.value(Component.literal("" + FabricLoader.getInstance().getAllMods().size()));
+            return PlaceholderResult.value(Component.literal("" + MinecraftServer.getServer().server.getPluginManager().getPlugins().length));
         });
 
         Placeholders.registerServer(Identifier.fromNamespaceAndPath("server", "mod_description"), (ctx, arg) -> {
             if (arg != null) {
-                var container = FabricLoader.getInstance().getModContainer(arg);
+                var plugin = MinecraftServer.getServer().server.getPluginManager().getPlugin(arg);
 
-                if (container.isPresent()) {
-                    return PlaceholderResult.value(Component.literal(container.get().getMetadata().getDescription()));
+                if (plugin != null) {
+                    final String description = plugin.getPluginMeta().getDescription();
+                    return PlaceholderResult.value(Component.literal(description == null ? "" : description));
                 }
             }
             return PlaceholderResult.invalid("Invalid argument");
