@@ -1,19 +1,24 @@
 package eu.pb4.placeholders.api.parsers;
 
-import eu.pb4.placeholders.api.*;
-import eu.pb4.placeholders.api.client.ClientPlaceholderContext;
-import eu.pb4.placeholders.api.client.ClientPlaceholders;
+import eu.pb4.placeholders.api.ParserContext;
+import eu.pb4.placeholders.api.PlaceholderContext;
+import eu.pb4.placeholders.api.Placeholders;
+import eu.pb4.placeholders.api.ServerPlaceholderContext;
 import eu.pb4.placeholders.api.node.TextNode;
 import eu.pb4.placeholders.api.parsers.tag.TagRegistry;
-import eu.pb4.placeholders.impl.LoaderUtil;
 import eu.pb4.placeholders.impl.textparser.MultiTagLikeParser;
 import eu.pb4.placeholders.impl.textparser.SingleTagLikeParser;
-import java.util.*;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
-import org.jetbrains.annotations.ApiStatus;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Allows you to create stacked parser in most "correct" and compatible way.
@@ -70,22 +75,6 @@ public class ParserBuilder {
      */
     public ParserBuilder commonPlaceholders(TagLikeParser.Format format, ParserContext.Key<PlaceholderContext> contextKey) {
         return customTags(format, TagLikeParser.Provider.placeholder(contextKey, Placeholders.COMMON_PLACEHOLDER_GETTER));
-    }
-
-    @ApiStatus.Experimental
-    public ParserBuilder clientPlaceholders() {
-        if (LoaderUtil.IS_CLIENT) {
-            return add(ClientPlaceholders.CLIENT_PLACEHOLDER_PARSER);
-        }
-        throw new RuntimeException("This method only work in client environment!");
-    }
-
-    @ApiStatus.Experimental
-    public ParserBuilder clientPlaceholders(TagLikeParser.Format format) {
-        if (LoaderUtil.IS_CLIENT) {
-            return customTags(format, TagLikeParser.Provider.placeholder(ClientPlaceholderContext.CLIENT_KEY, ClientPlaceholders.CLIENT_PLACEHOLDER_GETTER));
-        }
-        throw new RuntimeException("This method only work in client environment!");
     }
 
     /**
