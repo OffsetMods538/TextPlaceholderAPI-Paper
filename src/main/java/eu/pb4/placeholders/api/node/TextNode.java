@@ -5,6 +5,8 @@ import eu.pb4.placeholders.api.PlaceholderContext;
 import eu.pb4.placeholders.api.node.parent.ParentNode;
 import eu.pb4.placeholders.impl.GeneralUtils;
 import java.util.List;
+
+import io.papermc.paper.adventure.PaperAdventure;
 import net.minecraft.network.chat.Component;
 
 public interface TextNode {
@@ -20,6 +22,22 @@ public interface TextNode {
 
     default Component toComponent() {
         return toComponent(ParserContext.of(), true);
+    }
+
+    default net.kyori.adventure.text.Component toAdventureComponent(ParserContext context, boolean removeBackslashes) {
+        return PaperAdventure.asAdventure(toComponent(context, removeBackslashes));
+    }
+
+    default net.kyori.adventure.text.Component toAdventureComponent(ParserContext context) {
+        return toAdventureComponent(context, true);
+    }
+
+    default net.kyori.adventure.text.Component toAdventureComponent(PlaceholderContext context) {
+        return toAdventureComponent(context.asParserContext(), true);
+    }
+
+    default net.kyori.adventure.text.Component toAdventureComponent() {
+        return toAdventureComponent(ParserContext.of(), true);
     }
 
     default boolean isDynamic() {

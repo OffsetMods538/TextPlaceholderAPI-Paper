@@ -28,6 +28,14 @@ public interface NodeParser {
         return parseComponent(TextNode.of(input), context);
     }
 
+    default net.kyori.adventure.text.Component parseAdventureComponent(TextNode input, ParserContext context) {
+        return TextNode.asSingle(this.parseNodes(input)).toAdventureComponent(context, true);
+    }
+
+    default net.kyori.adventure.text.Component parseAdventureComponent(String input, ParserContext context) {
+        return parseAdventureComponent(TextNode.of(input), context);
+    }
+
     default Codec<WrappedText> codec() {
         return Codec.STRING.xmap(x -> WrappedText.from(this, x), WrappedText::input);
     }
