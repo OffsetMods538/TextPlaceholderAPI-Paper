@@ -48,6 +48,10 @@ public interface TextNode {
         return GeneralUtils.convertToNodes(input);
     }
 
+    static TextNode convert(net.kyori.adventure.text.Component input) {
+        return GeneralUtils.convertToNodes(PaperAdventure.asVanilla(input));
+    }
+
     static TextNode of(String input) {
         return new LiteralNode(input);
     }
