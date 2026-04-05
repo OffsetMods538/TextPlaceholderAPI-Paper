@@ -146,6 +146,7 @@ modrinth {
 	token = System.getenv("MODRINTH_TOKEN")
 	projectId = rootProject.mod_id
 	gameVersions = outlet.mcVersions()
+	loaders = ["paper"]
 
 
 	// Version stuff
@@ -162,6 +163,7 @@ modrinth {
 
 
 	// Files
+	uploadFile = jar
 	additionalFiles = [sourcesJar]
 
 
