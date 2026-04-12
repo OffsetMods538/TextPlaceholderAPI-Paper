@@ -266,7 +266,8 @@ public class TestMod extends JavaPlugin {
                                         <rb>Hello world!</>
                                         You are %player:head% %player:name%
                                         <gr yellow gold>Position: %player:pos_x% %player:pos_y% %player:pos_z% in %player:biome%</>
-                                        Time: %world:time%
+                                        Game Time: %world:time%
+                                        Real Time: %server:time%
                                         """, ServerPlaceholderContext.of(context.getSource()).asParserContext()));
                         return 1;
                     }).build()

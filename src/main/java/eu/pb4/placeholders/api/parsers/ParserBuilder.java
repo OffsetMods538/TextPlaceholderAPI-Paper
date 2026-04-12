@@ -10,6 +10,7 @@ import eu.pb4.placeholders.impl.textparser.MultiTagLikeParser;
 import eu.pb4.placeholders.impl.textparser.SingleTagLikeParser;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ResolutionContext;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,6 +27,7 @@ import java.util.function.Function;
 public class ParserBuilder {
     private final Map<TagLikeParser.Format, TagLikeParser.Provider> tagLike = new LinkedHashMap<>();
     private final List<NodeParser> parserList = new ArrayList<>();
+    private final List<NodeParser> finalizers = new ArrayList<>();
     private final List<ChatFormatting> legacyFormatting = new ArrayList<>();
     private boolean hasLegacy = false;
     private boolean legacyRGB = false;
@@ -228,6 +230,27 @@ public class ParserBuilder {
         return this;
     }
 
+    /**
+     * Adds a final step that resolves the given component.
+     */
+    public ParserBuilder resolveComponent(ResolutionContext resolutionContext) {
+        return this.add(FinalWrappingParser.resolving(resolutionContext));
+    }
+
+    /**
+     * Adds a final step that resolves the given component.
+     */
+    public ParserBuilder resolveComponent(ParserContext.Key<ResolutionContext> resolutionContextKey) {
+        return this.add(FinalWrappingParser.resolving(resolutionContextKey));
+    }
+
+    /**
+     * Flattens final component.
+     */
+    public ParserBuilder flatten() {
+        return this.add(FinalWrappingParser.FLATTEN_COMPONENT);
+    }
+
     public ParserBuilder add(NodeParser parser) {
         if (parser instanceof TagLikeWrapper wrapper) {
             var x = wrapper.asTagLikeParser();
@@ -241,6 +264,8 @@ public class ParserBuilder {
             this.hasLegacy = true;
             this.legacyFormatting.addAll(legacyFormattingParser.formatting());
             this.legacyRGB |= legacyFormattingParser.allowRGB();
+        } else if (parser instanceof FinalWrappingParser) {
+            this.finalizers.add(parser);
         }
 
         return forceAdd(parser);
@@ -253,6 +278,7 @@ public class ParserBuilder {
 
     public NodeParser build() {
         var list = new ArrayList<NodeParser>(this.parserList.size() + 1);
+
         if (!this.tagLike.isEmpty()) {
             list.add(TagLikeParser.of(this.tagLike));
         }
