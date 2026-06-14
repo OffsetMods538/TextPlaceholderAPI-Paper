@@ -9,7 +9,7 @@ plugins {
 	id 'xyz.jpenilla.run-paper' version "3.0.2"
 	id 'xyz.jpenilla.resource-factory-paper-convention' version "1.3.1"
 	id "com.modrinth.minotaur" version "2.+"
-	id 'io.github.dexman545.outlet' version "1.7.0-alpha.5"
+	id 'io.github.dexman545.outlet' version "1.8.0"
 }
 
 ext {
@@ -43,7 +43,7 @@ base {
 
 outlet {
 	mcVersionRange = project.supported_minecraft_versions
-	allowedReleaseTypes = Set.of(ReleaseType.RELEASE)
+	allowedReleaseTypes = Set.of(ReleaseType.RELEASE, ReleaseType.SNAPSHOT)
 }
 
 paperPluginYaml {
@@ -51,7 +51,7 @@ paperPluginYaml {
 	description = project.mod_description
 	main = "eu.pb4.placeholders.impl.PlaceholderAPIMain"
 	website = project.mod_website
-	apiVersion = outlet.mcVersions().first()
+	apiVersion = project.api_version
 	authors.add("Patbox")
 	authors.add("OffsetMonkey538")
 }
